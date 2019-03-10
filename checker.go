@@ -27,6 +27,7 @@ func (c *Client) NewChecker(serviceID, hcAddr string) (string, error) {
 		"Content-Type": []string{"application/json"},
 		"Accept":       []string{"application/json"},
 	}
+	checker.Status = "warning"
 
 	return checker.ID, c.api.Agent().CheckRegister(checker)
 }
