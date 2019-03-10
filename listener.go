@@ -104,12 +104,11 @@ func getDefaultConfigWithHTTPHealthcheck(name, addr string, port int, hc string,
 		return nil, err
 	}
 
-	name = fmt.Sprintf("%s-healthcheck", name)
-	checkID := fmt.Sprintf("%s-%s", name, ksuid.New().String())
+	checkID := fmt.Sprintf("%s-healthcheck-%s", name, ksuid.New().String())
 
 	cnf.Check = &api.AgentServiceCheck{
 		CheckID:  checkID,
-		Name:     name,
+		Name:     checkID,
 		Interval: "10s",
 		Timeout:  "1s",
 		Method:   "GET",
