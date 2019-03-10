@@ -21,11 +21,25 @@ func (c *Client) NewListener(name, addr string, port int, tags ...string) (strin
 // NewHTTPListenerWithHealthcheck register new listener in consul
 // with default configuration and custom healthcheck
 func (c *Client) NewHTTPListenerWithHealthcheck(name, addr string, port int, hc string, tags ...string) (string, error) {
-	cnf, err := getDefaultConfigWithHTTPHealthcheck(name, addr, port, hc, tags...)
+	cnf, err := getDefaultConfig(name, addr, port, tags...)
 	if err != nil {
 		return "", err
 	}
-	return cnf.ID, c.api.Agent().ServiceRegister(mapConfig(cnf))
+	if err := c.api.Agent().ServiceRegister(mapConfig(cnf)); err != nil {
+		return "", err
+	}
+
+	var healthcheck string
+	if strings.Contains(hc, "://") {
+		healthcheck = hc
+	} else if len(hc) > 0 {
+		healthcheck = fmt.Sprintf("http://%s:%d/%s", addr, port, strings.TrimLeft(hc, "/"))
+	} else {
+		healthcheck = fmt.Sprintf("http://%s:%d/health", addr, port)
+	}
+	_, err = c.NewChecker(cnf.ID, healthcheck)
+
+	return cnf.ID, err
 }
 
 // NewListenerWithConfig register new listener in consul with custom configuration
@@ -55,43 +69,14 @@ func mapConfig(cnf *Config) *api.AgentServiceRegistration {
 }
 
 func getDefaultConfig(name, addr string, port int, tags ...string) (*Config, error) {
-	id := ksuid.New().String()
 	name = slug.Make(name)
+	id := fmt.Sprintf("%s-%s", name, ksuid.New().String())
+	tags = append(tags, id, name)
 	return &Config{
-		ID:      fmt.Sprintf("%s-%s", name, id),
+		ID:      id,
 		Name:    name,
 		Address: addr,
 		Port:    port,
 		Tags:    tags,
 	}, nil
-}
-
-func getDefaultConfigWithHTTPHealthcheck(name, addr string, port int, hc string, tags ...string) (*Config, error) {
-	cnf, err := getDefaultConfig(name, addr, port, tags...)
-	if err != nil {
-		return nil, err
-	}
-
-	cnf.Check = &api.AgentServiceCheck{
-		CheckID:  ksuid.New().String(),
-		Name:     fmt.Sprintf("%s-healthcheck", name),
-		Interval: "10s",
-		Timeout:  "1s",
-		Method:   "GET",
-		HTTP:     fmt.Sprintf("http://%s:%d/health", addr, port),
-		Status:   "warning",
-		Header: map[string][]string{
-			"Content-Type": []string{"application/json"},
-			"Accept":       []string{"application/json"},
-		},
-		DeregisterCriticalServiceAfter: "60s",
-	}
-
-	if strings.Contains(hc, "://") {
-		cnf.Check.HTTP = hc
-	} else if len(hc) > 0 {
-		cnf.Check.HTTP = fmt.Sprintf("http://%s:%d/%s", addr, port, strings.TrimLeft(hc, "/"))
-	}
-
-	return cnf, nil
 }

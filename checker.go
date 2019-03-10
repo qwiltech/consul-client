@@ -28,6 +28,7 @@ func (c *Client) NewChecker(serviceID, hcAddr string) (string, error) {
 		"Accept":       []string{"application/json"},
 	}
 	checker.Status = "warning"
+	checker.DeregisterCriticalServiceAfter = "60s"
 
 	return checker.ID, c.api.Agent().CheckRegister(checker)
 }
