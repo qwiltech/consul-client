@@ -52,6 +52,20 @@ func (c *Client) RemoveListener(id string) error {
 	return c.api.Agent().ServiceDeregister(id)
 }
 
+// default listener configuration
+func getDefaultConfig(name, addr string, port int, tags ...string) (*Config, error) {
+	name = slug.Make(name)
+	id := fmt.Sprintf("%s-%s", name, ksuid.New().String())
+	tags = append(tags, id, name)
+	return &Config{
+		ID:      id,
+		Name:    name,
+		Address: addr,
+		Port:    port,
+		Tags:    tags,
+	}, nil
+}
+
 // map custom config structure to agent service registration structure
 func mapConfig(cnf *Config) *api.AgentServiceRegistration {
 	return &api.AgentServiceRegistration{
@@ -66,17 +80,4 @@ func mapConfig(cnf *Config) *api.AgentServiceRegistration {
 		Check:             cnf.Check,
 		Checks:            cnf.Checks,
 	}
-}
-
-func getDefaultConfig(name, addr string, port int, tags ...string) (*Config, error) {
-	name = slug.Make(name)
-	id := fmt.Sprintf("%s-%s", name, ksuid.New().String())
-	tags = append(tags, id, name)
-	return &Config{
-		ID:      id,
-		Name:    name,
-		Address: addr,
-		Port:    port,
-		Tags:    tags,
-	}, nil
 }
