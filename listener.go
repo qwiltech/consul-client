@@ -78,12 +78,13 @@ func getDefaultConfigWithHTTPHealthcheck(name, addr string, port int, hc string,
 		Interval: "10s",
 		Timeout:  "1s",
 		Method:   "GET",
+		HTTP:     fmt.Sprintf("http://%s:%d/health", addr, port),
+		Status:   "warning",
 		Header: map[string][]string{
 			"Content-Type": []string{"application/json"},
 			"Accept":       []string{"application/json"},
 		},
-		HTTP:   fmt.Sprintf("http://%s:%d/health", addr, port),
-		Status: "warning",
+		DeregisterCriticalServiceAfter: "60s",
 	}
 
 	if strings.Contains(hc, "://") {
